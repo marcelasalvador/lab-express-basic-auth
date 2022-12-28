@@ -3,29 +3,26 @@ const bcryptjs = require('bcryptjs');
 
 // HOME PAGE
 const homePageGetController = (req, res, next) => {
-    res.render('index.hbs');
+    res.render('index');
     return
 }
 
-const homePagePostController = (req, res, next) => {
-    res.send('ok');
-    return
-}
+
 
 //SIGNUP PAGE
 const signupGetController = (req, res, next) => {
-    res.render('signup.hbs');
+    res.render('signup');
 }
 
 const signupPostController = (req, res, next) => {
     console.log(req.body);
   
-    if(!req.body.email || ! req.body.password){
-      res.send('Sorry you forgot an email or password');
+    if(!req.body.username || ! req.body.password){
+      res.send('All fields required');
       return;
     }
   
-    User.findOne({ email: req.body.email })
+    User.findOne({ username: req.body.username })
       .then(foundUser => {
         
         if(foundUser){
@@ -36,17 +33,74 @@ const signupPostController = (req, res, next) => {
         const myHashedPassword = bcryptjs.hashSync(req.body.password)
   
         return User.create({
-          email: req.body.email,
+          username: req.body.username,
           password: myHashedPassword
         })
         
       })
       .then(createdUser => {
         console.log("here's the new user", createdUser);
-        res.send(createdUser);
+        res.redirect("/login");
       })
       .catch(err => {
         console.log(err);
         res.send(err);
       })
   };
+
+
+  // login page
+
+  const loginGetController = (req, res, next) => {
+    res.render('login');
+  };
+
+const loginPostController = (req, res, next) => {
+    console.log (req.body);
+
+    const {username, password} = req.body;
+
+    if(! username || ! password) {
+        res.render ("login", { errorMessage: "sorry you forgot email or password"});
+        return;
+    }
+
+    User.findOne ({ username: username})
+        .then(foundUser => { 
+            if(!foundUser) {
+                // res.send("Sorry user does not exist");
+                res.render ("login", { errorMessage: "sorry user does not exist"})
+                return
+            }
+        const isValidPassword = bcryptjs.compareSync(password, foundUser.password);
+
+            if (!isValidPassword) {
+                // res.send("sorry wrong password");
+                res.render ("login", { errorMessage: "sorry wrong password"})
+                return;
+            }
+            req.session.user = foundUser;
+          
+            res.redirect("/profile")
+        })
+        .catch (err => {
+            console.log(err);
+            res.send(err);
+        })
+  };
+
+  const profileGetController = (req, res, next) => {
+    res.render("/users/users-profile")
+
+  }
+
+
+  module.exports = {
+    homePageGetController,
+    signupGetController,
+    signupPostController,
+    loginGetController,
+    loginPostController,
+    profileGetController
+
+  } 
